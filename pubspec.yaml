@@ -70,3 +70,10 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.io/custom-fonts/#from-packages
+  fonts:
+    - family: SkyIcons
+      fonts:
+        - asset: fonts/SkyIcons.ttf
+    - family: PuHuiTi
+      fonts:
+        - asset: fonts/Alibaba-PuHuiTi-Light.ttf
