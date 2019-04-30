@@ -5,6 +5,7 @@ import 'home.dart';
 import 'category.dart';
 import 'shopping_cart.dart';
 import 'mine.dart';
+import '../util/log.dart';
 
 /// 底部tab items
 const bottomTabItems = <BottomNavigationBarItem> [
@@ -41,6 +42,7 @@ class MainTabPage extends StatelessWidget {
         ),
         tabBuilder: (BuildContext context, int index) {
           Widget contentPage = _pageCache.putIfAbsent(index, () {
+            log('创建页面$index');
             Widget child;
             switch(index) {
               case 1:
