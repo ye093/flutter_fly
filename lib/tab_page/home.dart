@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'dart:async';
 
-
 import '../service/ad_service.dart';
 import '../util/log.dart';
 import '../entity/ad.dart';
@@ -30,7 +29,6 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _bannerPageController = PageController(initialPage: 0);
-
   }
 
   @override
@@ -67,21 +65,23 @@ class _HomePageState extends State<HomePage> {
   /// width: 图片宽度
   /// height: 图片高度
   /// route: 点击事件中的跳转目标
-  Widget _imageFrom(String src, {double width, double height, String route}) {
+  Widget _imageFrom(String src,
+      {double width, double height, String route, int cols}) {
     return Container(
       width: width,
       height: height,
       alignment: AlignmentDirectional.center,
       child: FadeInImage.assetNetwork(
         placeholder: 'images/Loading.png',
-        fit: BoxFit.contain,
+        fit: cols == 1 ? BoxFit.fill : BoxFit.contain,
         image: src,
       ),
     );
   }
 
   /// 转化为广告视图
-  Widget _toAdTypeWidget(AdInfo adInfo, Size screenSize) {
+  Widget _toAdTypeWidget(AdInfo adInfo, Size screenSize, {int childFlex}) {
+    log('看看传进来都是什么值$childFlex');
     if (adInfo == null) {
       return Placeholder();
     }
@@ -130,14 +130,20 @@ class _HomePageState extends State<HomePage> {
             // 不用创建Column
             Item adItem = adItems[itemIndex++];
             rowChildren.add(_imageFrom(adItem.imgUrl,
-                route: adItem.url, width: itemWidth, height: itemHeight));
+                route: adItem.url,
+                width: itemWidth,
+                height: itemHeight,
+                cols: childFlex));
           } else {
             // 创建column
             final itemColumnsChildren = <Widget>[];
             for (int c = 0; c < columns; c++) {
               Item adItem = adItems[itemIndex++];
               itemColumnsChildren.add(_imageFrom(adItem.imgUrl,
-                  route: adItem.url, width: itemWidth, height: itemHeight));
+                  route: adItem.url,
+                  width: itemWidth,
+                  height: itemHeight,
+                  cols: childFlex));
             }
             final itemColumns = Column(
               mainAxisSize: MainAxisSize.min,
@@ -240,14 +246,15 @@ class _HomePageState extends State<HomePage> {
                   return SliverList(
                     delegate: SliverChildBuilderDelegate(
                         (BuildContext context, int index) {
-                      AdPosition adPosition = adPositions[index];
+                      final AdPosition adPosition = adPositions[index];
                       return FutureBuilder<AdInfo>(
                         future: _fetchAdByTypeId(adPosition.adTypeId),
                         builder: (BuildContext context,
                             AsyncSnapshot<AdInfo> adInfoSnap) {
                           if (adInfoSnap.connectionState ==
                               ConnectionState.done) {
-                            return _toAdTypeWidget(adInfoSnap.data, screenSize);
+                            return _toAdTypeWidget(adInfoSnap.data, screenSize,
+                                childFlex: adPosition.cols);
                           } else {
                             return SizedBox(
                               height: adPosition.height ?? 0,
@@ -258,7 +265,8 @@ class _HomePageState extends State<HomePage> {
                     }, childCount: adPositions?.length ?? 0),
                   );
                 } else {
-                  return SliverToBoxAdapter(child: Center(child: Text('精彩呈现中')));
+                  return SliverToBoxAdapter(
+                      child: Center(child: Text('精彩呈现中')));
                 }
               },
             ),
