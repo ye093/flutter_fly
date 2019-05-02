@@ -19,12 +19,10 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // 页面缓存
-  final _pageViewCache = new Map<int, Widget>();
 
   // banner页面控制器
   PageController _bannerPageController;
-  ValueNotifier<AdInfo> _banner = ValueNotifier(AdInfo());
+  ValueNotifier<AdInfo> _banner = ValueNotifier(null);
 
   // 屏幕的大小
 
@@ -43,7 +41,7 @@ class _HomePageState extends State<HomePage> {
 
   // 广告获取缓存
   _fetchBanner() {
-    AdService.get(typeCodes: '1000', entId: 1)
+    return AdService.get(typeCodes: '10000', entId: 1)
         .then((Map<String, dynamic> data) {
           if (data != null && data['code'] == 1) {
             return data['data'] as List<dynamic>;
@@ -54,11 +52,11 @@ class _HomePageState extends State<HomePage> {
         })
         .then((data) => AdInfo.fromJson(data))
         .then((adInfo) {
-          print('拿到回调$adInfo');
+          log('拿到回调$adInfo');
           _banner.value = adInfo;
         })
         .catchError((e) async {
-          print(e);
+          log(e);
         });
   }
 
@@ -69,7 +67,7 @@ class _HomePageState extends State<HomePage> {
   Image _imageFrom(String src, {double width, double height, String route}) {
     return Image.network(
       src,
-      fit: BoxFit.cover,
+      fit: BoxFit.contain,
       width: width,
       height: height,
     );
@@ -77,15 +75,20 @@ class _HomePageState extends State<HomePage> {
 
   /// 转化为广告视图
   Widget _toAdTypeWidget(AdInfo adInfo, Size screenSize) {
+    if (adInfo == null) {
+      return Placeholder();
+    }
     // 取广告的关键属性
     // 宽度计算
     double width = adInfo.width ?? screenSize.width;
     if (width <= 0) width = screenSize.width;
     if (width > 0 && width <= 1) width *= screenSize.width;
+    if (width > screenSize.width) width = screenSize.width;
     // 高度计算
     double height = adInfo.height ?? screenSize.height;
     if (height <= 0) height = screenSize.height;
     if (height > 0 && height <= 1) height *= screenSize.height;
+    if (height > screenSize.height) height = screenSize.height;
     // 计算列数
     String pattern = adInfo.pattern ?? '1';
     List<String> patterns = pattern.split(',');
@@ -159,7 +162,10 @@ class _HomePageState extends State<HomePage> {
             children: pageList,
           );
 
-    return adView;
+    return SizedBox(
+        width: width,
+        height: height,
+        child: adView);
   }
 
   @override
@@ -173,6 +179,7 @@ class _HomePageState extends State<HomePage> {
     return CupertinoPageScaffold(
       navigationBar: navigationBar,
       child: CustomScrollView(
+        semanticChildCount: 1,
         physics: const BouncingScrollPhysics(
             parent: AlwaysScrollableScrollPhysics()),
         slivers: <Widget>[
@@ -211,25 +218,22 @@ class _HomePageState extends State<HomePage> {
           //刷新控件
           CupertinoSliverRefreshControl(
             onRefresh: () {
-              return Future<void>.delayed(Duration(seconds: 2));
+              return _fetchBanner();
             },
           ),
           SliverSafeArea(
             top: false,
             sliver: SliverList(
               delegate:
-                  SliverChildBuilderDelegate((BuildContext context, int index) {
-                return _pageViewCache.putIfAbsent(index, () {
-                  if (index == 0) {
-                    return ValueListenableBuilder<AdInfo>(
-                      valueListenable: _banner,
-                      builder: (BuildContext context, AdInfo ad, _) {
-                        return _toAdTypeWidget(ad, screenSize);
-                      },
-                    );
-                  }
-                });
-              }, childCount: _pageViewCache.length),
+                  SliverChildBuilderDelegate(
+                          (BuildContext context, int index) {
+                return ValueListenableBuilder<AdInfo>(
+                  valueListenable: _banner,
+                  builder: (BuildContext context, AdInfo ad, _) {
+                    return _toAdTypeWidget(ad, screenSize);
+                  },
+                );
+              }, childCount: 1),
             ),
           ),
         ],
