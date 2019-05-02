@@ -6,7 +6,7 @@ class AdService {
   /// 不传type_code时要传 ad_type_id 一般指某类合集，如热销
   static const _adFetchPath = "/app/ad/fetchAd";
 
-  static Future<dynamic> get(
+  static Future<Map<String, dynamic>> get(
       {String typeCodes, int adTypeId, int entId}) async {
     var queryParams = <String, String>{"ent_id": entId.toString()};
     if (typeCodes != null && typeCodes.isNotEmpty) {

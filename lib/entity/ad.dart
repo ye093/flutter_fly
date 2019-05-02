@@ -40,7 +40,7 @@ class AdInfo {
         items = new List<Item>() {
     List<dynamic> adItems = json['items'];
     if (adItems != null && adItems.isNotEmpty) {
-      for (dynamic item in adItems) {
+      for (Map<String, dynamic> item in adItems) {
         items.add(Item(
             adLineId: item['ad_line_id'],
             imgUrl: item['img_url'],

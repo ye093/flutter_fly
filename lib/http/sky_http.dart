@@ -5,7 +5,7 @@ import '../util/log.dart';
 
 /// App网络请求类
 class SkyHttp {
-  static Future<dynamic> get(
+  static Future<Map<String,dynamic>> get(
       {String path, Map<String, String> queryParameters, String token}) async {
     log("请求路径: $path");
     log("请求参数:$queryParameters");
@@ -28,7 +28,7 @@ class SkyHttp {
       }
       String responseBody = await response.transform(utf8.decoder).join();
       log('响应: $responseBody');
-      return json.decode(responseBody);
+      return jsonDecode(responseBody);
     } catch (e) {
       log(e);
       throw '请求出错';

@@ -44,13 +44,19 @@ class _HomePageState extends State<HomePage> {
   // 广告获取缓存
   _fetchBanner() {
     AdService.get(typeCodes: '1000', entId: 1)
-        .then((data) {
+        .then((Map<String, dynamic> data) {
           if (data != null && data['code'] == 1) {
-            return data['data'];
+            return data['data'] as List<dynamic>;
           }
         })
+        .then((List<dynamic> data) {
+          return data[0] as Map<String, dynamic>;
+        })
         .then((data) => AdInfo.fromJson(data))
-        .then((adInfo) => _banner.value = adInfo)
+        .then((adInfo) {
+          print('拿到回调$adInfo');
+          _banner.value = adInfo;
+        })
         .catchError((e) async {
           print(e);
         });
@@ -128,18 +134,22 @@ class _HomePageState extends State<HomePage> {
             rowChildren.add(itemColumns);
           }
         }
-        var rowWidget = cols == 1 ? rowChildren.first : Row(
-          mainAxisSize: MainAxisSize.min,
-          children: rowChildren,
-        );
+        var rowWidget = cols == 1
+            ? rowChildren.first
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: rowChildren,
+              );
         // 创建一行结束
         rowList.add(rowWidget);
       }
 
-      final adTypeView = rows == 1 ? rowList.first : Column(
-        mainAxisSize: MainAxisSize.min,
-        children: rowList,
-      );
+      final adTypeView = rows == 1
+          ? rowList.first
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: rowList,
+            );
       pageList.add(adTypeView);
     }
 
