@@ -1,10 +1,10 @@
 /// 广告配置信息
 class AdInfo {
   /// 广告的宽度，0或者null为不限制
-  final double width;
+  double width;
 
   /// 广告的高度，0或者null为不限制
-  final double height;
+  double height;
 
   /// 模式
   final String pattern;

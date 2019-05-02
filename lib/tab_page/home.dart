@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'dart:async';
+
+
 import '../service/ad_service.dart';
 import '../util/log.dart';
 import '../entity/ad.dart';
@@ -65,12 +67,16 @@ class _HomePageState extends State<HomePage> {
   /// width: 图片宽度
   /// height: 图片高度
   /// route: 点击事件中的跳转目标
-  Image _imageFrom(String src, {double width, double height, String route}) {
-    return Image.network(
-      src,
-      fit: BoxFit.contain,
+  Widget _imageFrom(String src, {double width, double height, String route}) {
+    return Container(
       width: width,
       height: height,
+      alignment: AlignmentDirectional.center,
+      child: FadeInImage.assetNetwork(
+        placeholder: 'images/Loading.png',
+        fit: BoxFit.contain,
+        image: src,
+      ),
     );
   }
 
@@ -81,15 +87,17 @@ class _HomePageState extends State<HomePage> {
     }
     // 取广告的关键属性
     // 宽度计算
+//    final devicePixelRatio = window.devicePixelRatio;
+//    if (adInfo.width != null && adInfo.width > 1) adInfo.width /= devicePixelRatio;
     double width = adInfo.width ?? screenSize.width;
     if (width <= 0) width = screenSize.width;
     if (width > 0 && width <= 1) width *= screenSize.width;
     if (width > screenSize.width) width = screenSize.width;
     // 高度计算
+//    if (adInfo.height != null && adInfo.height > 1) adInfo.height /= devicePixelRatio;
     double height = adInfo.height ?? screenSize.height;
     if (height <= 0) height = screenSize.height;
     if (height > 0 && height <= 1) height *= screenSize.height;
-    if (height > screenSize.height) height = screenSize.height;
     // 计算列数
     String pattern = adInfo.pattern ?? '1';
     List<String> patterns = pattern.split(',');
@@ -141,6 +149,7 @@ class _HomePageState extends State<HomePage> {
         var rowWidget = cols == 1
             ? rowChildren.first
             : Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 mainAxisSize: MainAxisSize.min,
                 children: rowChildren,
               );
@@ -177,7 +186,6 @@ class _HomePageState extends State<HomePage> {
     return CupertinoPageScaffold(
       navigationBar: navigationBar,
       child: CustomScrollView(
-        semanticChildCount: 1,
         physics: const BouncingScrollPhysics(
             parent: AlwaysScrollableScrollPhysics()),
         slivers: <Widget>[
@@ -242,7 +250,7 @@ class _HomePageState extends State<HomePage> {
                             return _toAdTypeWidget(adInfoSnap.data, screenSize);
                           } else {
                             return SizedBox(
-                              height: adPosition.height,
+                              height: adPosition.height ?? 0,
                             );
                           }
                         },
