@@ -50,10 +50,35 @@ class AdInfo {
   }
 }
 
+/// 广告信息最小单位
 class Item {
   int adLineId;
   String imgUrl;
   String url;
 
   Item({this.adLineId, this.imgUrl, this.url});
+}
+
+/// 广告位置信息
+class AdPosition {
+  //t.ad_type_id,t.type_code,t.rows,t.cols,t.width,t.height,t.pattern
+  int adTypeId;
+  int typeCode;
+  int rows;
+  int cols;
+  double width;
+  double height;
+  String pattern;
+
+  AdPosition({this.adTypeId, this.typeCode, this.rows, this.cols, this.width, this.height, this.pattern});
+
+
+  AdPosition.fromJson(Map<String, dynamic> json)
+      : adTypeId = json['ad_type_id'],
+        typeCode = json['type_code'],
+        rows = json['rows'],
+        cols = json['cols'],
+        width = json['width'],
+        height = json['height'],
+        pattern = json['pattern'];
 }

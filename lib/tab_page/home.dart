@@ -19,10 +19,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-
   // banner页面控制器
   PageController _bannerPageController;
-  ValueNotifier<AdInfo> _banner = ValueNotifier(null);
 
   // 屏幕的大小
 
@@ -30,7 +28,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _bannerPageController = PageController(initialPage: 0);
-    _fetchBanner();
+
   }
 
   @override
@@ -40,24 +38,27 @@ class _HomePageState extends State<HomePage> {
   }
 
   // 广告获取缓存
-  _fetchBanner() {
-    return AdService.get(typeCodes: '10000', entId: 1)
+  Future<AdInfo> _fetchAdByTypeId(int adTypeId) {
+    return AdService.get(adTypeId: adTypeId, entId: 1)
         .then((Map<String, dynamic> data) {
-          if (data != null && data['code'] == 1) {
-            return data['data'] as List<dynamic>;
-          }
-        })
-        .then((List<dynamic> data) {
-          return data[0] as Map<String, dynamic>;
-        })
-        .then((data) => AdInfo.fromJson(data))
-        .then((adInfo) {
-          log('拿到回调$adInfo');
-          _banner.value = adInfo;
-        })
-        .catchError((e) async {
-          log(e);
-        });
+      if (data != null && data['code'] == 1) {
+        return data['data'] as List<dynamic>;
+      }
+    }).then((List<dynamic> data) {
+      return data[0] as Map<String, dynamic>;
+    }).then((data) => AdInfo.fromJson(data));
+  }
+
+  /// 获取广告位置信息
+  Future<List<AdPosition>> _fetchAdPostion() {
+    return AdService.getPosition(typeCodes: '10000-11000', entId: 1)
+        .then((Map<String, dynamic> data) {
+      if (data != null && data['code'] == 1) {
+        return data['data'] as List<dynamic>;
+      }
+    }).then((List<dynamic> data) {
+      return data.map((d) => AdPosition.fromJson(d)).toList();
+    });
   }
 
   /// src: 图片地址
@@ -162,10 +163,7 @@ class _HomePageState extends State<HomePage> {
             children: pageList,
           );
 
-    return SizedBox(
-        width: width,
-        height: height,
-        child: adView);
+    return SizedBox(width: width, height: height, child: adView);
   }
 
   @override
@@ -218,64 +216,46 @@ class _HomePageState extends State<HomePage> {
           //刷新控件
           CupertinoSliverRefreshControl(
             onRefresh: () {
-              return _fetchBanner();
+              return _fetchAdPostion();
             },
           ),
           SliverSafeArea(
             top: false,
-            sliver: SliverList(
-              delegate:
-                  SliverChildBuilderDelegate(
-                          (BuildContext context, int index) {
-                return ValueListenableBuilder<AdInfo>(
-                  valueListenable: _banner,
-                  builder: (BuildContext context, AdInfo ad, _) {
-                    return _toAdTypeWidget(ad, screenSize);
-                  },
-                );
-              }, childCount: 1),
+            sliver: FutureBuilder(
+              future: _fetchAdPostion(),
+              builder: (BuildContext context,
+                  AsyncSnapshot<List<AdPosition>> snapshot) {
+                if (snapshot.hasError) {
+                  return SliverToBoxAdapter(child: Center(child: Text('加载失败')));
+                } else if (snapshot.connectionState == ConnectionState.done) {
+                  List<AdPosition> adPositions = snapshot.data;
+                  return SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                        (BuildContext context, int index) {
+                      AdPosition adPosition = adPositions[index];
+                      return FutureBuilder<AdInfo>(
+                        future: _fetchAdByTypeId(adPosition.adTypeId),
+                        builder: (BuildContext context,
+                            AsyncSnapshot<AdInfo> adInfoSnap) {
+                          if (adInfoSnap.connectionState ==
+                              ConnectionState.done) {
+                            return _toAdTypeWidget(adInfoSnap.data, screenSize);
+                          } else {
+                            return SizedBox(
+                              height: adPosition.height,
+                            );
+                          }
+                        },
+                      );
+                    }, childCount: adPositions?.length ?? 0),
+                  );
+                } else {
+                  return SliverToBoxAdapter(child: Center(child: Text('精彩呈现中')));
+                }
+              },
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// item view
-class _HomeItemView extends StatelessWidget {
-  _HomeItemView(
-      {Key key,
-      @required this.position,
-      @required this.leading,
-      @required this.content,
-      @required this.onClick})
-      : super(key: key);
-
-  final int position;
-  final String content;
-  final IconData leading;
-  final VoidCallback onClick;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onClick,
-      child: Container(
-        padding: EdgeInsets.all(8.0),
-        decoration: BoxDecoration(
-          color: position.isEven
-              ? const Color(0xffca8687)
-              : const Color(0xfff8aba6),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: <Widget>[
-            Icon(leading),
-            Expanded(child: Center(child: Text(content))),
-          ],
-        ),
       ),
     );
   }
