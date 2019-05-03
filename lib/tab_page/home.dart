@@ -50,7 +50,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   /// 获取广告位置信息
-  Future<List<AdPosition>> _fetchAdPostion() {
+  Future<List<AdPosition>> _fetchAdPosition() {
     return AdService.getPosition(typeCodes: '10000-11000', entId: 1)
         .then((Map<String, dynamic> data) {
       if (data != null && data['code'] == 1) {
@@ -75,35 +75,43 @@ class _HomePageState extends State<HomePage> {
         placeholder: 'images/Loading.png',
         fit: cols == 1 ? BoxFit.fill : BoxFit.contain,
         image: src,
+        width: width,
+        height: height,
       ),
     );
   }
 
-  /// 转化为广告视图
-  Widget _toAdTypeWidget(AdInfo adInfo, Size screenSize, {int childFlex}) {
-    log('看看传进来都是什么值$childFlex');
-    if (adInfo == null) {
-      return Placeholder();
-    }
-    // 取广告的关键属性
+  /// 获取广告的大小
+  Size _adSize(AdInfo adInfo, Size screenSize) {
     // 宽度计算
-//    final devicePixelRatio = window.devicePixelRatio;
-//    if (adInfo.width != null && adInfo.width > 1) adInfo.width /= devicePixelRatio;
     double width = adInfo.width ?? screenSize.width;
     if (width <= 0) width = screenSize.width;
     if (width > 0 && width <= 1) width *= screenSize.width;
     if (width > screenSize.width) width = screenSize.width;
     // 高度计算
-//    if (adInfo.height != null && adInfo.height > 1) adInfo.height /= devicePixelRatio;
     double height = adInfo.height ?? screenSize.height;
     if (height <= 0) height = screenSize.height;
     if (height > 0 && height <= 1) height *= screenSize.height;
+    return Size(width, height);
+  }
+
+  /// 转化为广告视图
+  Widget _toAdTypeWidget(AdInfo adInfo, Size screenSize) {
+    if (adInfo == null) {
+      return Placeholder();
+    }
+    // 取广告的关键属性
+    final adSize = _adSize(adInfo, screenSize);
+    final width = adSize.width;
+    final height = adSize.height;
+
     // 计算列数
-    String pattern = adInfo.pattern ?? '1';
-    List<String> patterns = pattern.split(',');
-    int cols = adInfo.cols;
-    int rows = adInfo.rows;
-    List<Item> adItems = adInfo.items;
+    final String pattern = adInfo.pattern ?? '1';
+    final List<String> patterns = pattern.split(',');
+    final int cols = adInfo.cols;
+    final int rows = adInfo.rows;
+    final List<Item> adItems = adInfo.items;
+    final maxLen = adItems.length;
     int itemIndex = 0;
 
     // 总共多少页
@@ -119,13 +127,14 @@ class _HomePageState extends State<HomePage> {
       final rowList = <Widget>[];
       for (int i = 0; i < rows; i++) {
         // 创建一行开始
-        var rowChildren = <Widget>[];
+        final rowChildren = <Widget>[];
         for (int r = 0; r < cols; r++) {
           // 看看有几行
           int columns = int.parse(patterns[r]);
           // 每个格子的宽度
           double itemHeight = height / (rows * columns);
           double itemWidth = width / cols;
+
           if (columns == 1) {
             // 不用创建Column
             Item adItem = adItems[itemIndex++];
@@ -133,7 +142,7 @@ class _HomePageState extends State<HomePage> {
                 route: adItem.url,
                 width: itemWidth,
                 height: itemHeight,
-                cols: childFlex));
+                cols: cols));
           } else {
             // 创建column
             final itemColumnsChildren = <Widget>[];
@@ -143,33 +152,40 @@ class _HomePageState extends State<HomePage> {
                   route: adItem.url,
                   width: itemWidth,
                   height: itemHeight,
-                  cols: childFlex));
+                  cols: cols));
+              // 退出循环
+              if (itemIndex == maxLen) break;
             }
             final itemColumns = Column(
-              mainAxisSize: MainAxisSize.min,
               children: itemColumnsChildren,
             );
             rowChildren.add(itemColumns);
           }
+
+          // 退出循环
+          if (itemIndex == maxLen) break;
         }
         var rowWidget = cols == 1
             ? rowChildren.first
             : Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                mainAxisSize: MainAxisSize.min,
                 children: rowChildren,
               );
         // 创建一行结束
         rowList.add(rowWidget);
+
+        // 退出循环
+        if (itemIndex == maxLen) break;
       }
 
       final adTypeView = rows == 1
           ? rowList.first
           : Column(
-              mainAxisSize: MainAxisSize.min,
               children: rowList,
             );
       pageList.add(adTypeView);
+
+      // 退出循环
+      if (itemIndex == maxLen) break;
     }
 
     final adView = pageCount == 1
@@ -230,13 +246,13 @@ class _HomePageState extends State<HomePage> {
           //刷新控件
           CupertinoSliverRefreshControl(
             onRefresh: () {
-              return _fetchAdPostion();
+              return _fetchAdPosition();
             },
           ),
           SliverSafeArea(
             top: false,
             sliver: FutureBuilder(
-              future: _fetchAdPostion(),
+              future: _fetchAdPosition(),
               builder: (BuildContext context,
                   AsyncSnapshot<List<AdPosition>> snapshot) {
                 if (snapshot.hasError) {
@@ -253,8 +269,7 @@ class _HomePageState extends State<HomePage> {
                             AsyncSnapshot<AdInfo> adInfoSnap) {
                           if (adInfoSnap.connectionState ==
                               ConnectionState.done) {
-                            return _toAdTypeWidget(adInfoSnap.data, screenSize,
-                                childFlex: adPosition.cols);
+                            return _toAdTypeWidget(adInfoSnap.data, screenSize,);
                           } else {
                             return SizedBox(
                               height: adPosition.height ?? 0,
