@@ -205,6 +205,7 @@ class _HomePageState extends State<HomePage> {
     final screenSize = MediaQuery.of(context).size;
 
     final paddingTop = MediaQuery.of(context).padding.top;
+    final paddingBottom = MediaQuery.of(context).padding.bottom;
     final navigationBar = CupertinoNavigationBar(
       middle: Text(widget.title),
     );
@@ -259,7 +260,12 @@ class _HomePageState extends State<HomePage> {
               builder: (BuildContext context,
                   AsyncSnapshot<List<AdPosition>> snapshot) {
                 if (snapshot.hasError) {
-                  return SliverToBoxAdapter(child: Center(child: Text('加载失败')));
+                  return SliverToBoxAdapter(
+                      child: Center(
+                          child: Text(
+                    '加载失败',
+                    style: TextStyle(color: CupertinoColors.destructiveRed),
+                  )));
                 } else if (snapshot.connectionState == ConnectionState.done) {
                   List<AdPosition> adPositions = snapshot.data;
                   return SliverList(
@@ -287,7 +293,11 @@ class _HomePageState extends State<HomePage> {
                   );
                 } else {
                   return SliverToBoxAdapter(
-                      child: Center(child: Text('精彩呈现中')));
+                      child: Container(
+                          height: screenSize.height - paddingBottom,
+                          width: screenSize.width,
+                          alignment: AlignmentDirectional.center,
+                          child: const CupertinoActivityIndicator(radius: 20,)));
                 }
               },
             ),
