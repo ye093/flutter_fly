@@ -108,6 +108,9 @@ class _HomePageState extends State<HomePage> {
     // 计算列数
     final String pattern = adInfo.pattern ?? '1';
     final List<String> patterns = pattern.split(',');
+    // 判断子视图是否需要拉伸,当每列的模式不一致时，则需要拉伸
+    final bool isFill = !patterns.every((s) => s == patterns[0]);
+
     final int cols = adInfo.cols;
     final int rows = adInfo.rows;
     final List<Item> adItems = adInfo.items;
@@ -142,7 +145,7 @@ class _HomePageState extends State<HomePage> {
                 route: adItem.url,
                 width: itemWidth,
                 height: itemHeight,
-                isFill: cols == 1));
+                isFill: cols == 1 || isFill));
           } else {
             // 创建column
             final itemColumnsChildren = <Widget>[];
@@ -152,7 +155,7 @@ class _HomePageState extends State<HomePage> {
                   route: adItem.url,
                   width: itemWidth,
                   height: itemHeight,
-                  isFill: cols == 1));
+                  isFill: cols == 1 || isFill));
               // 退出循环
               if (itemIndex == maxLen) break;
             }
