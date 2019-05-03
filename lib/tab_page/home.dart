@@ -86,7 +86,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   /// 转化为广告视图
-  Widget _toAdTypeWidget(AdInfo adInfo, Size screenSize, int parentIndex) {
+  Widget _toAdTypeWidget(AdInfo adInfo, Size screenSize) {
     if (adInfo == null) {
       return Placeholder();
     }
@@ -182,22 +182,15 @@ class _HomePageState extends State<HomePage> {
       if (itemIndex == maxLen) break;
     }
 
-//    final adView = pageCount == 1
-//        ? pageList.first
-//        : PageView(
-//            controller: pageViewControllers.putIfAbsent(parentIndex, () => PageController(initialPage: 0)),
-//            children: pageList,
-//          );
-
     var adView;
     if (pageCount == 1) {
       adView = pageList.first;
     } else {
-      int initPage = pageViewsPosition.putIfAbsent(parentIndex, () => 0);
+      int initPage = pageViewsPosition.putIfAbsent(adInfo.adTypeId, () => 0);
       adView = PageView(
         controller: PageController(initialPage: initPage),
         onPageChanged: (pageIndex) {
-          pageViewsPosition[parentIndex] = pageIndex;
+          pageViewsPosition[adInfo.adTypeId] = pageIndex;
         },
         children: pageList,
       );
@@ -206,163 +199,229 @@ class _HomePageState extends State<HomePage> {
     return SizedBox(width: width, height: height, child: adView);
   }
 
+  /// 创建list item,这里的itemWidth为单个的
+  Widget _listItemFrom(
+      {@required AdInfo adInfo,
+      @required int index,
+      @required Size screenSize}) {
+    Size itemSize = _adSize(adInfo, screenSize);
+    double itemWidth = itemSize.width;
+    double itemHeight = itemSize.height;
+    Item adItem = adInfo.items[index];
+    return _imageFrom(adItem.imgUrl,
+        route: adItem.url, width: itemWidth, height: itemHeight, isFill: true);
+  }
+
+  /// 创建Grid item 这里的itemHeight为单个的
+  Widget _gridItemFrom(
+      {@required AdInfo adInfo,
+      @required int index,
+      @required Size screenSize}) {
+    Size itemSize = _adSize(adInfo, screenSize);
+    double itemWidth = itemSize.width;
+    double itemHeight = itemSize.height;
+    Item adItem = adInfo.items[index];
+    return _imageFrom(adItem.imgUrl,
+        route: adItem.url, width: itemWidth, height: itemHeight, isFill: true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-
     final paddingTop = MediaQuery.of(context).padding.top;
     final paddingBottom = MediaQuery.of(context).padding.bottom;
     final navigationBar = CupertinoNavigationBar(
       middle: Text(widget.title),
     );
-    return CupertinoPageScaffold(
-      navigationBar: navigationBar,
-      child: CustomScrollView(
-        physics: const BouncingScrollPhysics(
-            parent: AlwaysScrollableScrollPhysics()),
-        slivers: <Widget>[
-          // 只能用于 phone x
-//        CupertinoSliverNavigationBar(
-//          largeTitle: Text(widget.title),
-//        ),
 
-          // 头不能固定
-//          SliverPersistentHeader(
-//            delegate: SkyNavigationBar(title: widget.title),
-//            pinned: false,
-//            floating: false,
-//          ),
-
-          // 头不能固定
-//          SliverToBoxAdapter(
-//            child: CupertinoNavigationBar(
-//              middle: Text(widget.title),
-//            ),
-//          ),
-
-          // 创建一个控件占用 头header和statusBar的高度相当于padding
-          SliverPersistentHeader(
-            delegate: SkyNavigationBarPadding(
-                paddingTop: paddingTop + navigationBar.preferredSize.height),
-            pinned: false,
-            floating: true,
-          ),
+    // 创建一个控件占用 头header和statusBar的高度相当于padding
+    final SliverPersistentHeader header = SliverPersistentHeader(
+      delegate: SkyNavigationBarPadding(
+          paddingTop: paddingTop + navigationBar.preferredSize.height),
+      pinned: false,
+      floating: true,
+    );
 
 //          SliverPadding(
 //            padding: EdgeInsets.only(
 //                top: paddingTop + navigationBar.preferredSize.height),
 //          ),
 
-          //刷新控件
-          CupertinoSliverRefreshControl(
-            onRefresh: () {
-              return _fetchAdPosition();
-            },
-          ),
-          FutureBuilder(
-            future: _fetchAdPosition(),
-            builder: (BuildContext context,
-                AsyncSnapshot<List<AdPosition>> snapshot) {
-              if (snapshot.hasError) {
-                return SliverToBoxAdapter(
+    //刷新控件
+    final refreshController = CupertinoSliverRefreshControl(
+      onRefresh: () {
+        return _fetchAdPosition();
+      },
+    );
+
+    // 底部padding
+    final sliverBottomPaddingBox = SliverToBoxAdapter(
+      child: SizedBox(
+        height: MediaQuery.of(context).padding.bottom,
+      ),
+    );
+
+    return CupertinoPageScaffold(
+      navigationBar: navigationBar,
+      child: FutureBuilder(
+        future: _fetchAdPosition(),
+        builder:
+            (BuildContext context, AsyncSnapshot<List<AdPosition>> snapshot) {
+          if (snapshot.hasError) {
+            return _put(
+                child: SliverToBoxAdapter(
                     child: Center(
                         child: Text(
                   '加载失败',
                   style: TextStyle(color: CupertinoColors.destructiveRed),
-                )));
-              } else if (snapshot.connectionState == ConnectionState.done) {
-                List<AdPosition> adPositions = snapshot.data;
-                return SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                      (BuildContext context, int index) {
-                    final AdPosition adPosition = adPositions[index];
-                    return FutureBuilder<AdInfo>(
-                      future: _fetchAdByTypeId(adPosition.adTypeId),
-                      builder: (BuildContext context,
-                          AsyncSnapshot<AdInfo> adInfoSnap) {
-                        if (adInfoSnap.connectionState ==
-                            ConnectionState.done) {
-                          return _toAdTypeWidget(
-                              adInfoSnap.data, screenSize, index);
-                        } else {
-                          return SizedBox(
-                            height: adPosition.height ?? 0,
-                            width: adPosition.width ?? 0,
-                          );
-                        }
-                      },
+                ))),
+                header: header,
+                refreshController: refreshController,
+                bottomPaddingBox: sliverBottomPaddingBox);
+          } else if (snapshot.connectionState == ConnectionState.done) {
+            List<AdPosition> adPositions = snapshot.data;
+            // 还是要用FutureBuilder
+            final sliverList = <FutureBuilder<AdInfo>>[];
+            for (AdPosition adPosition in adPositions) {
+              sliverList.add(FutureBuilder<AdInfo>(
+                future: _fetchAdByTypeId(adPosition.adTypeId),
+                builder: (BuildContext context,
+                    AsyncSnapshot<AdInfo> adInfoSnapshot) {
+                  /// 根据不同的adInfo选择不同的Sliver容器
+                  if (adInfoSnapshot.connectionState == ConnectionState.done) {
+                    AdInfo adInfo = adInfoSnapshot.data;
+                    // 广告行数小于5的都用
+                    if (adInfo.rows < 5) {
+                      return SliverToBoxAdapter(
+                        child: _toAdTypeWidget(adInfoSnapshot.data, screenSize),
+                      );
+                    } else {
+                      // 算真实行数
+                      String pattern = adInfo.pattern;
+                      List<Item> items = adInfo.items;
+                      List<String> patternNum = pattern.split(",");
+                      // 一行有几个元素
+                      int rowChildNum =
+                          patternNum.map(int.parse).fold(0, (a, b) => a + b);
+                      // 总共几行
+                      int rowNum = (items.length ~/ rowChildNum).ceil();
+                      if (rowNum < 5) {
+                        return SliverToBoxAdapter(
+                          child:
+                              _toAdTypeWidget(adInfoSnapshot.data, screenSize),
+                        );
+                      }
+                      if (patternNum.length == 1) {
+                        // list
+                        return SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (BuildContext context, int index) {
+                              return _listItemFrom(
+                                  adInfo: adInfo,
+                                  index: index,
+                                  screenSize: screenSize);
+                            },
+                          ),
+                        );
+                      } else {
+                        // grid
+                        return SliverGrid(
+                          gridDelegate:
+                              SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 200.0,
+                            mainAxisSpacing: 10.0,
+                            crossAxisSpacing: 10.0,
+                            childAspectRatio: 4.0,
+                          ),
+                          delegate: SliverChildBuilderDelegate(
+                            (BuildContext context, int index) {
+                              return _gridItemFrom(
+                                  adInfo: adInfo,
+                                  index: index,
+                                  screenSize: screenSize);
+                            },
+                            childCount: items.length,
+                          ),
+                        );
+                      }
+                    }
+                  } else {
+                    return SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: adPosition.height,
+                        width: adPosition.width,
+                      ),
                     );
-                  }, childCount: adPositions?.length ?? 0),
-                );
-              } else {
-                return SliverToBoxAdapter(
+                  }
+                },
+              ));
+            }
+            return _put(
+                children: sliverList,
+                header: header,
+                refreshController: refreshController,
+                bottomPaddingBox: sliverBottomPaddingBox);
+          } else {
+            return _put(
+                child: SliverToBoxAdapter(
                     child: Container(
                         height: screenSize.height - paddingBottom,
                         width: screenSize.width,
                         alignment: AlignmentDirectional.center,
                         child: const CupertinoActivityIndicator(
                           radius: 20,
-                        )));
-              }
-            },
-          ),
-
-          SliverGrid(
-            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 200.0,
-              mainAxisSpacing: 10.0,
-              crossAxisSpacing: 10.0,
-              childAspectRatio: 4.0,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int index) {
-                return Container(
-                  alignment: Alignment.center,
-                  color: Color(0x66773366),
-                  child: Text('grid item $index'),
-                );
-              },
-              childCount: 20,
-            ),
-          ),
-
-          // 底部padding
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: MediaQuery.of(context).padding.bottom,
-            ),
-          )
-        ],
+                        ))),
+                header: header,
+                refreshController: refreshController,
+                bottomPaddingBox: sliverBottomPaddingBox);
+          }
+        },
       ),
     );
   }
-}
 
-/// 自定义标题头
-//class SkyNavigationBar extends SliverPersistentHeaderDelegate {
-//  SkyNavigationBar({this.title});
-//
-//  final String title;
-//
-//  @override
-//  Widget build(
-//      BuildContext context, double shrinkOffset, bool overlapsContent) {
-//    return CupertinoNavigationBar(
-//      middle: Text(title),
-//    );
-//  }
-//
-//  @override
-//  double get maxExtent => 96.0;
-//
-//  @override
-//  double get minExtent => 44.0;
-//
-//  @override
-//  bool shouldRebuild(SliverPersistentHeaderDelegate oldDelegate) {
-//    return false;
-//  }
-//}
+  /// 动态添加列表
+  CustomScrollView _put(
+      {List<Widget> children,
+      Widget child,
+      @required SliverPersistentHeader header,
+      @required CupertinoSliverRefreshControl refreshController,
+      @required SliverToBoxAdapter bottomPaddingBox}) {
+    final slivers = <Widget>[header, refreshController];
+    if (child != null) {
+      slivers.add(child);
+    } else if (children != null && children.length > 0) {
+      slivers.addAll(children);
+    }
+    slivers.add(bottomPaddingBox);
+
+    // 测试
+    slivers.add(SliverGrid(
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 200.0,
+        mainAxisSpacing: 10.0,
+        crossAxisSpacing: 10.0,
+        childAspectRatio: 4.0,
+      ),
+      delegate: SliverChildBuilderDelegate(
+            (BuildContext context, int index) {
+          return Container(
+            alignment: Alignment.center,
+            color: Color(0x66773366),
+            child: Text('grid item $index'),
+          );
+        },
+        childCount: 40,
+      ),
+    ));
+
+    return CustomScrollView(
+      physics:
+          const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+      slivers: slivers,
+    );
+  }
+}
 
 /// 为了占用头部高度
 class SkyNavigationBarPadding extends SliverPersistentHeaderDelegate {
