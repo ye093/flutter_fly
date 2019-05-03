@@ -66,14 +66,14 @@ class _HomePageState extends State<HomePage> {
   /// height: 图片高度
   /// route: 点击事件中的跳转目标
   Widget _imageFrom(String src,
-      {double width, double height, String route, int cols}) {
+      {double width, double height, String route, bool isFill}) {
     return Container(
       width: width,
       height: height,
       alignment: AlignmentDirectional.center,
       child: FadeInImage.assetNetwork(
-        placeholder: 'images/Loading.png',
-        fit: cols == 1 ? BoxFit.fill : BoxFit.contain,
+        placeholder: isFill ? 'images/loading_large.png' : 'images/loading.png',
+        fit: isFill ? BoxFit.fill : BoxFit.contain,
         image: src,
         width: width,
         height: height,
@@ -142,7 +142,7 @@ class _HomePageState extends State<HomePage> {
                 route: adItem.url,
                 width: itemWidth,
                 height: itemHeight,
-                cols: cols));
+                isFill: cols == 1));
           } else {
             // 创建column
             final itemColumnsChildren = <Widget>[];
@@ -152,7 +152,7 @@ class _HomePageState extends State<HomePage> {
                   route: adItem.url,
                   width: itemWidth,
                   height: itemHeight,
-                  cols: cols));
+                  isFill: cols == 1));
               // 退出循环
               if (itemIndex == maxLen) break;
             }
@@ -269,7 +269,10 @@ class _HomePageState extends State<HomePage> {
                             AsyncSnapshot<AdInfo> adInfoSnap) {
                           if (adInfoSnap.connectionState ==
                               ConnectionState.done) {
-                            return _toAdTypeWidget(adInfoSnap.data, screenSize,);
+                            return _toAdTypeWidget(
+                              adInfoSnap.data,
+                              screenSize,
+                            );
                           } else {
                             return SizedBox(
                               height: adPosition.height ?? 0,
