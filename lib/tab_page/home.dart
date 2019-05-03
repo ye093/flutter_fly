@@ -259,55 +259,52 @@ class _HomePageState extends State<HomePage> {
               return _fetchAdPosition();
             },
           ),
-          SliverSafeArea(
-            top: false,
-            sliver: FutureBuilder(
-              future: _fetchAdPosition(),
-              builder: (BuildContext context,
-                  AsyncSnapshot<List<AdPosition>> snapshot) {
-                if (snapshot.hasError) {
-                  return SliverToBoxAdapter(
-                      child: Center(
-                          child: Text(
-                    '加载失败',
-                    style: TextStyle(color: CupertinoColors.destructiveRed),
-                  )));
-                } else if (snapshot.connectionState == ConnectionState.done) {
-                  List<AdPosition> adPositions = snapshot.data;
-                  return SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                        (BuildContext context, int index) {
-                      final AdPosition adPosition = adPositions[index];
-                      return FutureBuilder<AdInfo>(
-                        future: _fetchAdByTypeId(adPosition.adTypeId),
-                        builder: (BuildContext context,
-                            AsyncSnapshot<AdInfo> adInfoSnap) {
-                          if (adInfoSnap.connectionState ==
-                              ConnectionState.done) {
-                            return _toAdTypeWidget(
-                                adInfoSnap.data, screenSize, index);
-                          } else {
-                            return SizedBox(
-                              height: adPosition.height ?? 0,
-                              width: adPosition.width ?? 0,
-                            );
-                          }
-                        },
-                      );
-                    }, childCount: adPositions?.length ?? 0),
-                  );
-                } else {
-                  return SliverToBoxAdapter(
-                      child: Container(
-                          height: screenSize.height - paddingBottom,
-                          width: screenSize.width,
-                          alignment: AlignmentDirectional.center,
-                          child: const CupertinoActivityIndicator(
-                            radius: 20,
-                          )));
-                }
-              },
-            ),
+          FutureBuilder(
+            future: _fetchAdPosition(),
+            builder: (BuildContext context,
+                AsyncSnapshot<List<AdPosition>> snapshot) {
+              if (snapshot.hasError) {
+                return SliverToBoxAdapter(
+                    child: Center(
+                        child: Text(
+                  '加载失败',
+                  style: TextStyle(color: CupertinoColors.destructiveRed),
+                )));
+              } else if (snapshot.connectionState == ConnectionState.done) {
+                List<AdPosition> adPositions = snapshot.data;
+                return SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                      (BuildContext context, int index) {
+                    final AdPosition adPosition = adPositions[index];
+                    return FutureBuilder<AdInfo>(
+                      future: _fetchAdByTypeId(adPosition.adTypeId),
+                      builder: (BuildContext context,
+                          AsyncSnapshot<AdInfo> adInfoSnap) {
+                        if (adInfoSnap.connectionState ==
+                            ConnectionState.done) {
+                          return _toAdTypeWidget(
+                              adInfoSnap.data, screenSize, index);
+                        } else {
+                          return SizedBox(
+                            height: adPosition.height ?? 0,
+                            width: adPosition.width ?? 0,
+                          );
+                        }
+                      },
+                    );
+                  }, childCount: adPositions?.length ?? 0),
+                );
+              } else {
+                return SliverToBoxAdapter(
+                    child: Container(
+                        height: screenSize.height - paddingBottom,
+                        width: screenSize.width,
+                        alignment: AlignmentDirectional.center,
+                        child: const CupertinoActivityIndicator(
+                          radius: 20,
+                        )));
+              }
+            },
           ),
 
           SliverGrid(
@@ -321,12 +318,18 @@ class _HomePageState extends State<HomePage> {
               (BuildContext context, int index) {
                 return Container(
                   alignment: Alignment.center,
-                  color:
-                      Color(0xff000000 + 0xffffff & (0xaa00aa & (1 << index))),
+                  color: Color(0x66773366),
                   child: Text('grid item $index'),
                 );
               },
               childCount: 20,
+            ),
+          ),
+
+          // 底部padding
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: MediaQuery.of(context).padding.bottom,
             ),
           )
         ],
