@@ -20,20 +20,10 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // banner页面控制器
-  PageController _bannerPageController;
-
-  // 屏幕的大小
-
-  @override
-  void initState() {
-    super.initState();
-    _bannerPageController = PageController(initialPage: 0);
-  }
+  final pageViewsPosition = <int, int>{};
 
   @override
   void dispose() {
-    _bannerPageController?.dispose();
     super.dispose();
   }
 
@@ -96,7 +86,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   /// 转化为广告视图
-  Widget _toAdTypeWidget(AdInfo adInfo, Size screenSize) {
+  Widget _toAdTypeWidget(AdInfo adInfo, Size screenSize, int parentIndex) {
     if (adInfo == null) {
       return Placeholder();
     }
@@ -179,9 +169,10 @@ class _HomePageState extends State<HomePage> {
         // 退出循环
         if (itemIndex == maxLen) break;
       }
-
       final adTypeView = rows == 1
-          ? rowList.first
+          ? Container(
+              child: rowList.first,
+            )
           : Column(
               children: rowList,
             );
@@ -191,11 +182,26 @@ class _HomePageState extends State<HomePage> {
       if (itemIndex == maxLen) break;
     }
 
-    final adView = pageCount == 1
-        ? pageList.first
-        : PageView(
-            children: pageList,
-          );
+//    final adView = pageCount == 1
+//        ? pageList.first
+//        : PageView(
+//            controller: pageViewControllers.putIfAbsent(parentIndex, () => PageController(initialPage: 0)),
+//            children: pageList,
+//          );
+
+    var adView;
+    if (pageCount == 1) {
+      adView = pageList.first;
+    } else {
+      int initPage = pageViewsPosition.putIfAbsent(parentIndex, () => 0);
+      adView = PageView(
+        controller: PageController(initialPage: initPage),
+        onPageChanged: (pageIndex) {
+          pageViewsPosition[parentIndex] = pageIndex;
+        },
+        children: pageList,
+      );
+    }
 
     return SizedBox(width: width, height: height, child: adView);
   }
@@ -279,12 +285,11 @@ class _HomePageState extends State<HomePage> {
                           if (adInfoSnap.connectionState ==
                               ConnectionState.done) {
                             return _toAdTypeWidget(
-                              adInfoSnap.data,
-                              screenSize,
-                            );
+                                adInfoSnap.data, screenSize, index);
                           } else {
                             return SizedBox(
                               height: adPosition.height ?? 0,
+                              width: adPosition.width ?? 0,
                             );
                           }
                         },
@@ -297,11 +302,33 @@ class _HomePageState extends State<HomePage> {
                           height: screenSize.height - paddingBottom,
                           width: screenSize.width,
                           alignment: AlignmentDirectional.center,
-                          child: const CupertinoActivityIndicator(radius: 20,)));
+                          child: const CupertinoActivityIndicator(
+                            radius: 20,
+                          )));
                 }
               },
             ),
           ),
+
+          SliverGrid(
+            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 200.0,
+              mainAxisSpacing: 10.0,
+              crossAxisSpacing: 10.0,
+              childAspectRatio: 4.0,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (BuildContext context, int index) {
+                return Container(
+                  alignment: Alignment.center,
+                  color:
+                      Color(0xff000000 + 0xffffff & (0xaa00aa & (1 << index))),
+                  child: Text('grid item $index'),
+                );
+              },
+              childCount: 20,
+            ),
+          )
         ],
       ),
     );
